@@ -9,7 +9,7 @@ choose), and speaks the reply. Each house has its own people, personality and se
 
 - **A 64-bit Intel or AMD box** running Home Assistant OS or Supervised (a mini PC, NUC or
   virtual machine). Raspberry Pi and other ARM boards are not supported yet.
-- **Highly suggested: your own AI account** (Claude or Codex), at least while you set up: the
+- **Highly recommended: your own AI account** (Claude or Codex), at least while you set up: the
   Chat tab can then set things up and fix them for you. Without one, everything about your house
   still answers, but open chat, the Chat tab and learning from conversations are off. The full
   list: [with and without an AI account](FEATURES.md#with-and-without-an-ai-account).
@@ -26,7 +26,7 @@ choose), and speaks the reply. Each house has its own people, personality and se
      stop phrase, made from its name).
    - **People**: who lives here, linked to their Home Assistant people. Then **Train voice** for
      each person, so it knows who is talking.
-   - **System**: sign the AI in (below; highly suggested), and the app's settings.
+   - **System**: connect an AI account (below; highly recommended), and the app's settings.
    A new name or new people take a **Restart Housemate** (the button is on the page).
 3. **Hearing and voice in Home Assistant.** Settings > Devices & services > Discovered shows the
    Wyoming service: add it (your assistant's Hearing and Voice).

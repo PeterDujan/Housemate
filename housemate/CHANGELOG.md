@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.2
+
+- The README and the feature list are rewritten in plain English, and the feature list now
+  covers everything it does: memory, recall on demand, a character that grows, and how it keeps
+  AI use low.
+
 ## 1.0.0-beta.1
 
 - First public release.

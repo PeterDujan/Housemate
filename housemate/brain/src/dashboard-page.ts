@@ -1359,7 +1359,7 @@ export function dashboardPageHtml(): string {
     var SETUP_STEPS = {
       assistant: { title: "Name your assistant", help: "Pick a name, pronoun and personality.", view: "assistant", button: "Assistant" },
       people: { title: "Add who lives here", help: "Add each person, link them to their Home Assistant person, and pick who runs the house.", view: "people", button: "People" },
-      brain: { title: "Sign in the brain", help: "Claude or Codex, with your own account. Pick which in System, Settings.", view: "system", button: "System" },
+      brain: { title: "Connect an AI account", help: "Claude or Codex, with your own account. Highly recommended: the Chat tab can then help with the rest. Pick one in System, Settings.", view: "system", button: "System" },
       assist: { title: "Add Housemate Brain to Home Assistant", help: "Install Housemate Brain from HACS and restart Home Assistant, then add it under Settings > Devices & services. In Settings > Voice assistants, pick it as the conversation agent, with ${name} Hearing and ${name} Voice.", view: "", button: "" }
     };
 
