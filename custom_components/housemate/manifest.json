@@ -1,0 +1,16 @@
+{
+  "domain": "housemate",
+  "name": "Housemate Brain",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [
+    "conversation",
+    "http"
+  ],
+  "documentation": "https://github.com/PeterDujan/Housemate",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/PeterDujan/Housemate/issues",
+  "requirements": [],
+  "version": "0.7.0"
+}

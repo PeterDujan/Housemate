@@ -1,0 +1,126 @@
+name: Housemate
+version: "1.0.0-beta.1"
+slug: housemate
+description: A voice-first assistant that lives in your house - its brain, ears and voice in one app
+url: https://github.com/PeterDujan/Housemate
+arch:
+  - amd64
+init: false
+startup: application
+boot: auto
+# Speakers (8196) and the brain (3005) on the network;
+# HA's Wyoming and turn links (10310/10311) on loopback only.
+host_network: true
+homeassistant_api: true
+ingress: true
+ingress_port: 3005
+ingress_stream: true
+panel_icon: mdi:home-heart
+panel_title: Housemate
+discovery:
+  - wyoming
+  - housemate
+map:
+  - type: addon_config
+    read_only: false
+  - type: share
+    read_only: false
+  - type: homeassistant_config
+    read_only: true
+backup_exclude:
+  - brain/knowledge
+  - brain/eval-runs
+  - voice/.cache
+options:
+  brain: claude
+  model: "claude-sonnet-5"
+  claude_token: ""
+  claude_api_key: ""
+  openai_api_key: ""
+  monthly_budget_usd: 7.5
+  chat_effort: default
+  learn_from_chats: true
+  recall_memories: true
+  keep_words: true
+  speak_up_on_its_own: false
+  grow_its_character: false
+  device_control: true
+  chat_tools: false
+  web_search: false
+  place: ""
+  household_roster: ""
+  approval_phone: ""
+  operator_ha_user: ""
+  projects_dir: ""
+  wikipedia_dir: ""
+  api_token: ""
+  brain_port: 3005
+  background_jobs: true
+  hearing: home_assistant
+  language: "en-AU"
+  keyterms: []
+  deepgram_api_key: ""
+  elevenlabs_api_key: ""
+  inworld_api_key: ""
+  ha_stt_entity: ""
+  ha_stt_language: ""
+  voice: home_assistant
+  fish_api_key: ""
+  fish_voice_id: ""
+  ha_tts_entity: ""
+  speaker_id: true
+  speakers_enabled: true
+  speakers_port: 8196
+  assist_enabled: true
+  wyoming_port: 10310
+  turn_port: 10311
+  announce_to_home_assistant: true
+  publish_states: true
+  self_test: false
+schema:
+  brain: list(claude|codex|off)
+  model: str
+  claude_token: password?
+  claude_api_key: password?
+  openai_api_key: password?
+  monthly_budget_usd: float(0,)
+  chat_effort: list(default|low|medium|high)
+  learn_from_chats: bool
+  recall_memories: bool
+  keep_words: bool
+  speak_up_on_its_own: bool
+  grow_its_character: bool
+  device_control: bool
+  chat_tools: bool
+  web_search: bool
+  place: str?
+  household_roster: str?
+  approval_phone: str?
+  operator_ha_user: str?
+  projects_dir: str?
+  wikipedia_dir: str?
+  api_token: password?
+  brain_port: port
+  background_jobs: bool
+  hearing: list(deepgram|elevenlabs|inworld|local_whisper|home_assistant)
+  language: str
+  keyterms:
+    - str
+  deepgram_api_key: password?
+  elevenlabs_api_key: password?
+  inworld_api_key: password?
+  ha_stt_entity: str?
+  ha_stt_language: str?
+  voice: list(fish|home_assistant|espeak)
+  fish_api_key: password?
+  fish_voice_id: str?
+  ha_tts_entity: str?
+  speaker_id: bool
+  speakers_enabled: bool
+  speakers_port: port
+  assist_enabled: bool
+  wyoming_port: port
+  turn_port: port
+  announce_to_home_assistant: bool
+  publish_states: bool
+  self_test: bool

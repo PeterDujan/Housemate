@@ -1,0 +1,145 @@
+configuration:
+  brain:
+    name: "Brain"
+    description: "Which model answers open chat: Claude or Codex (each your own account), or off (house answers still come from code, which is most of them)."
+  model:
+    name: "Model"
+    description: "The model name for the brain, e.g. claude-sonnet-5."
+  claude_token:
+    name: "Claude sign-in"
+    description: "Run `claude setup-token` with your own Claude account and paste the token here. Codex signs in on the Housemate page (Settings, Sign-in)."
+  claude_api_key:
+    name: "Anthropic API key"
+    description: "Instead of a Claude sign-in: your own Anthropic API key (paid per use, on your account)."
+  openai_api_key:
+    name: "OpenAI API key"
+    description: "Instead of signing Codex in on the Housemate page: your own OpenAI API key (paid per use, on your account)."
+  monthly_budget_usd:
+    name: "Monthly model budget (USD)"
+    description: "Model calls stop for the month when they reach this."
+  chat_effort:
+    name: "Chat effort (Claude)"
+    description: "How hard Claude thinks in open chat: low answers fastest; default leaves it to Claude."
+  learn_from_chats:
+    name: "Learn from chats"
+    description: "After a chat, remember what mattered. Sensitive things wait for the owner's approval."
+  recall_memories:
+    name: "Bring up past chats"
+    description: "Use what it remembers when it answers."
+  keep_words:
+    name: "Keep what people say about themselves"
+    description: "Keeps a household member's own words for good (never anything sensitive); they can ask it to forget."
+  speak_up_on_its_own:
+    name: "Speak up on its own"
+    description: "Suggests proactive things the assistant could do. Currently unavailable."
+  grow_its_character:
+    name: "Grow its character"
+    description: "Each night it may adjust how it sees itself, within the rules."
+  device_control:
+    name: "Switch devices"
+    description: "Switches what you expose to Assist, for the household only."
+  chat_tools:
+    name: "House lookups in chat"
+    description: "Lets open chat look things up in the house."
+  web_search:
+    name: "Web search in chat"
+    description: "Lets open chat search the web (Claude only)."
+  place:
+    name: "Where the house is"
+    description: "Suburb or town, state and country, e.g. 'Fairview, Ontario, Canada'. Used for anything local (cinemas, news, opening hours). Empty: nothing is assumed."
+  household_roster:
+    name: "Household"
+    description: "A sentence or two about who lives here, e.g. 'Sam and Alex are partners; Jo is their son; Biscuit is the dog.'"
+  approval_phone:
+    name: "Approval phone"
+    description: "The notify service of the owner's phone, e.g. notify.mobile_app_sams_phone, for keeping sensitive memories."
+  operator_ha_user:
+    name: "Owner's HA user id"
+    description: "The Home Assistant user who may review memories on the Housemate page."
+  projects_dir:
+    name: "Projects folder"
+    description: "A folder of notes it may read when asked about your projects (read-only). Empty: none."
+  wikipedia_dir:
+    name: "Offline Wikipedia folder"
+    description: "Where the offline Wikipedia store lives (it is large), e.g. /share/housemate/knowledge."
+  api_token:
+    name: "API token"
+    description: "Leave empty: the app makes its own. Set it only to reach the brain's API from elsewhere."
+  brain_port:
+    name: "Brain port"
+    description: "Leave at 3005."
+  background_jobs:
+    name: "Background jobs"
+    description: "Watchers, refreshes and reminders. Off only for testing beside another install."
+  hearing:
+    name: Hearing
+    description: >-
+      Speech to text. Home Assistant (the default) uses the speech-to-text your Home Assistant
+      already has, with no key. Deepgram (Flux) hears the end of a sentence and answers fastest. ElevenLabs,
+      Inworld, local Whisper and Home Assistant's own engines wait for silence instead, so replies
+      start a little later. Cloud engines hear your words; local Whisper and local HA engines keep
+      them in the house.
+  language:
+    name: Language
+    description: Language code for the cloud hearing engines, for example en-AU.
+  keyterms:
+    name: Words to listen for
+    description: Names and words the hearing should expect (people, pets, places). Deepgram, ElevenLabs and Inworld use them; other engines ignore them.
+  deepgram_api_key:
+    name: Deepgram key
+    description: Your own Deepgram key (paid per minute of speech).
+  elevenlabs_api_key:
+    name: ElevenLabs key
+    description: Your own ElevenLabs key, for ElevenLabs hearing.
+  inworld_api_key:
+    name: Inworld key
+    description: Your own Inworld key, for Inworld hearing.
+  ha_stt_entity:
+    name: Home Assistant hearing
+    description: With hearing set to Home Assistant, the speech-to-text entity to use, for example stt.faster_whisper (local) or stt.home_assistant_cloud. Empty picks Home Assistant's own (its Cloud first, then Whisper).
+  ha_stt_language:
+    name: Home Assistant hearing language
+    description: A language that engine supports, for example en. Empty picks the one closest to your Home Assistant's language.
+  voice:
+    name: Voice
+    description: >-
+      Text to speech. Home Assistant (the default) uses any voice your Home Assistant has, with no
+      key (Piper is local and free, Home Assistant Cloud is cloud); it renders whole sentences, so
+      replies start later and have no tone. Fish streams the reply as it is written and follows the
+      speaker's tone (paid, your own key). espeak is robotic and for emergencies.
+  fish_api_key:
+    name: Fish key
+    description: Your own Fish Audio key.
+  fish_voice_id:
+    name: Fish voice
+    description: The Fish voice model id to speak with.
+  ha_tts_entity:
+    name: Home Assistant voice
+    description: The text-to-speech entity, for example tts.piper. Empty picks Home Assistant's own (its Cloud first, then Piper). With Fish as the voice, this is the backup when Fish fails (instead of espeak).
+  speaker_id:
+    name: Know who is talking
+    description: Recognises enrolled people by voice. Runs on this box; voices never leave it.
+  speakers_enabled:
+    name: Speakers
+    description: Lets Housemate speakers (the Show, LocalDots) connect.
+  speakers_port:
+    name: Speakers port
+    description: The port the speakers connect to on this box.
+  assist_enabled:
+    name: Home Assistant Assist
+    description: Hearing and voice for HA's Assist (Wyoming) and the turn link the Housemate conversation agent uses. Both listen on this box only.
+  wyoming_port:
+    name: Wyoming port
+    description: HA's Wyoming integration connects here (127.0.0.1).
+  turn_port:
+    name: Turn port
+    description: The Housemate Brain integration connects here (127.0.0.1).
+  announce_to_home_assistant:
+    name: Offer to Home Assistant
+    description: Shows the Wyoming service under Settings > Devices > Discovered.
+  publish_states:
+    name: Publish states
+    description: Keeps the voice state and last speaker sensors up to date in HA.
+  self_test:
+    name: Self test
+    description: Runs the voice test suite at start and writes the result to the log. For checking an update; leave off.

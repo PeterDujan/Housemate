@@ -1,0 +1,27 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "hassio_confirm": {
+        "title": "Housemate Brain",
+        "description": "Use {name} from the Housemate app as an Assist conversation agent? Then pick it as the conversation agent of a voice assistant (Settings > Voice assistants)."
+      },
+      "user": {
+        "title": "Housemate Brain",
+        "description": "Install and start the Housemate app first; it is normally found by itself. Fill these in only if it was not.",
+        "data": {
+          "name": "Assistant's name",
+          "host": "Housemate app host",
+          "port": "Turn port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Housemate did not answer. Is the Housemate app installed and started?"
+    },
+    "abort": {
+      "already_configured": "This Housemate app is already set up.",
+      "cannot_connect": "Housemate did not answer. Is the Housemate app installed and started?"
+    }
+  }
+}

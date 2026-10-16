@@ -1,0 +1,22 @@
+{
+  "name": "housemate-brain",
+  "version": "0.0.467",
+  "private": true,
+  "type": "module",
+  "description": "Fast deterministic voice-first Home Assistant brain for Housemate.",
+  "scripts": {
+    "build": "rm -rf dist && node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "start": "node dist/src/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.46.4",
+    "typescript": "^5.9.3"
+  }
+}
