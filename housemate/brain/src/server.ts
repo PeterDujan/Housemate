@@ -76,10 +76,14 @@ import {
   type VoiceRequestTransportTrust,
 } from "./voice-request-trust.js";
 import { errorMessage } from "./value-guards.js";
-import { CodexSignIn } from "./sign-in.js";
+import { ClaudeSignIn, CodexSignIn } from "./sign-in.js";
 import { readVoiceWordsForm, saveVoiceWordsForm } from "./voice-words.js";
 import { readMediaAppsForm, saveMediaAppForm } from "./media-apps.js";
-import { readAppOptionsForm, saveAppOptionsForm } from "./app-options.js";
+import { fishVoices, readAppLog, readAppOptions, readAppOptionsForm, saveAppOptionsForm, supervisorAccess, type OptionChoices } from "./app-options.js";
+import type { AssistSetup } from "./assist-setup.js";
+import { buildHouseChecks, pipelineHelp, recentLogErrors, type HouseChecks } from "./house-checks.js";
+import { hideSecrets } from "./chat-settings-tools.js";
+import { assistantName } from "./persona.js";
 
 export interface HealthResponse {
   readonly ok: true;
@@ -123,6 +127,8 @@ export interface DashboardResponse {
   readonly proactiveReview: ProactiveReviewSummary;
   /** Held memories waiting for Keep / Scrap. */
   readonly heldMemories: { readonly enabled: boolean; readonly items: readonly HeldMemoryReviewItem[] };
+  /** Saved changes that wait for a restart of the app (the page's one restart bar). */
+  readonly restartPending: readonly string[];
 }
 
 export interface AppRuntime {
@@ -144,6 +150,10 @@ export interface AppRuntime {
   readonly dashboardNames?: DashboardNames;
   /** The Housemate Brain conversation agent in Home Assistant (platform housemate), if added. */
   readonly brainAgent?: () => string | null;
+  /** Home Assistant's voice side for the checks: the agent, the app's Hearing and Voice, each speaker's assistant. */
+  readonly assistSetup?: () => Promise<AssistSetup>;
+  /** Home Assistant's phones (notify.mobile_app_*), for the approval phone pick. */
+  readonly notifyPhones?: () => Promise<readonly { readonly value: string; readonly label: string }[]>;
   /** Voice training on a speaker. */
   readonly voiceTraining?: VoiceTrainingControl;
   /** What the house set itself up from, and a fresh look. */
@@ -347,9 +357,20 @@ const ROUTES = new Map<string, PathRoutes>([
     access: "ingress",
     methods: {
       GET: open(({ config, json }) => json(200, signInBody(config))),
-      POST: open(({ config, json }) => {
-        if (config.modelBackend !== "codex") {
-          json(409, { ok: false, error: "Codex signs in here; Claude takes a token from `claude setup-token` in the settings." });
+      POST: open(async ({ config, request, json }) => {
+        if (config.modelBackend === "claude") {
+          // {} starts `claude setup-token`; {code} is what Claude's page gave back.
+          let body: Record<string, unknown> = {};
+          try {
+            const raw = await readJsonBody(request).catch(() => ({}));
+            body = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+            if (typeof body.code === "string") claudeSignIn().paste(body.code);
+            else claudeSignIn().start();
+          } catch (error) {
+            json(400, { ok: false, error: errorMessage(error) });
+            return;
+          }
+          json(200, signInBody(config));
           return;
         }
         codexSignInFor(config).start();
@@ -379,16 +400,19 @@ const ROUTES = new Map<string, PathRoutes>([
   ["/settings/app", {
     access: "ingress",
     methods: {
-      GET: open(async ({ json }) => {
+      GET: open(async ({ runtime, json }) => {
         try {
-          json(200, await readAppOptionsForm());
+          json(200, await readAppOptionsForm(supervisorAccess(), await optionChoices(runtime)));
         } catch (error) {
           json(503, { ok: false, error: errorMessage(error) });
         }
       }),
-      POST: open(async ({ request, json }) => {
+      POST: open(async ({ runtime, request, json }) => {
         try {
-          json(200, await saveAppOptionsForm(await readJsonBody(request)));
+          const body = await readJsonBody(request);
+          const saved = await saveAppOptionsForm(body, supervisorAccess(), await optionChoices(runtime));
+          restartPending.add("app_settings");
+          json(200, saved);
         } catch (error) {
           json(400, { ok: false, error: errorMessage(error) });
         }
@@ -404,6 +428,7 @@ const ROUTES = new Map<string, PathRoutes>([
       POST: open(async ({ config, request, json }) => {
         try {
           json(200, saveMediaAppForm(mediaConfigFile(config), await readJsonBody(request)));
+          restartPending.add("media_apps");
         } catch (error) {
           json(400, { ok: false, error: errorMessage(error) });
         }
@@ -447,14 +472,24 @@ const ROUTES = new Map<string, PathRoutes>([
   ["/setup", {
     access: "ingress",
     methods: {
-      GET: open(({ config, runtime, json }) => {
+      GET: open(async ({ config, runtime, json }) => {
         const signIn = signInBody(config);
+        const assist = await readAssist(runtime);
         json(200, setupStatus({
           personalityFile: personalityFilePath(),
           householdFile: householdFilePath(),
           brainReady: signIn.backend === "off" || signIn.signedIn === true,
-          agent: runtime.brainAgent?.() ?? null,
+          agent: assist?.agent ?? runtime.brainAgent?.() ?? null,
+          ...(assist ? { speakersLeft: assist.speakers.filter((speaker) => !speaker.usesHousemate).map((speaker) => speaker.name), pipelineHelp: pipelineHelp(assistantName(), assist) } : {}),
         }));
+      }),
+    },
+  }],
+  ["/checks", {
+    access: "ingress",
+    methods: {
+      GET: open(async ({ config, runtime, json }) => {
+        json(200, await houseChecks(config, runtime));
       }),
     },
   }],
@@ -940,7 +975,94 @@ function buildDashboardResponse(
     heldMemories: runtime.memoryReflection
       ? { enabled: true, items: runtime.memoryReflection.heldForReview() }
       : { enabled: false, items: [] },
+    restartPending: pendingRestarts(runtime),
   };
+}
+
+/** Saved this run and only read at start: settings saved through Home Assistant, and the media apps. */
+const restartPending = new Set<string>();
+const RESTART_LABELS: Readonly<Record<string, string>> = {
+  personality: "the name", people: "the household", spoken_words: "the spoken words", app_settings: "the settings", media_apps: "the media apps",
+};
+
+/** What is saved but not in use until the app restarts, in plain words. */
+function pendingRestarts(runtime: AppRuntime): readonly string[] {
+  const waiting = new Set(restartPending);
+  const check = (key: string, read: () => { readonly restartPending: boolean }) => {
+    try {
+      if (read().restartPending) waiting.add(key);
+    } catch {
+      // A file that doesn't read is reported by its own section.
+    }
+  };
+  check("personality", () => readPersonaForm(personalityFilePath()));
+  check("people", () => readPeopleForm(householdFilePath(), runtime.haPersons?.() ?? []));
+  check("spoken_words", () => readVoiceWordsForm());
+  return [...waiting].map((key) => RESTART_LABELS[key] ?? key);
+}
+
+/** Home Assistant's voice side, or null when it can't be read (not connected, not wired). */
+async function readAssist(runtime: AppRuntime): Promise<AssistSetup | null> {
+  try {
+    return await runtime.assistSetup?.() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The lists the System page's picks fill from the house. */
+async function optionChoices(runtime: AppRuntime): Promise<OptionChoices> {
+  const [assist, phones, options] = await Promise.all([
+    readAssist(runtime),
+    runtime.notifyPhones?.().catch(() => []) ?? Promise.resolve([]),
+    readAppOptions().catch(() => ({} as Record<string, unknown>)),
+  ]);
+  const key = typeof options.fish_api_key === "string" ? options.fish_api_key : "";
+  return {
+    stt: (assist?.stt ?? []).map((entity) => ({ value: entity.id, label: entity.name })),
+    tts: (assist?.tts ?? []).map((entity) => ({ value: entity.id, label: entity.name })),
+    phones,
+    fish_voices: await fishVoices(key),
+  };
+}
+
+/** The page's Checks, from the same sources as the page's sections. */
+async function houseChecks(config: AppConfig, runtime: AppRuntime): Promise<HouseChecks> {
+  const signIn = signInBody(config);
+  const [assist, options, training, log] = await Promise.all([
+    readAssist(runtime),
+    readAppOptions().catch(() => null),
+    runtime.voiceTraining?.status().catch(() => null) ?? Promise.resolve(null),
+    readAppLog(supervisorAccess(), "x-log").catch(() => null),
+  ]);
+  let people: { id: string; name: string; linked: boolean }[] = [];
+  try {
+    people = readPeopleForm(householdFilePath(), runtime.haPersons?.() ?? []).people
+      .map((person) => ({ id: person.id, name: person.name, linked: Boolean(person.ha_person) }));
+  } catch {
+    people = [];
+  }
+  const found = runtime.houseDiscovery?.found() ?? null;
+  const house = found ? discoveryReply(runtime, found) : null;
+  const trained = Array.isArray(training?.trained) ? training.trained.filter((id) => typeof id === "string") : null;
+  return buildHouseChecks({
+    name: assistantName(),
+    signIn: { backend: String(signIn.backend), signedIn: signIn.signedIn === true },
+    speech: options ? { hearing: String(options.hearing ?? "home_assistant"), voice: String(options.voice ?? "home_assistant") } : null,
+    assist,
+    house: house
+      ? {
+        power: house.page.power,
+        powerName: house.options.power.find((option) => option.id === house.page.power)?.name ?? null,
+        musicPlayers: house.options.musicPlayers.length,
+        speakerMusic: house.page.speakers,
+      }
+      : null,
+    people,
+    trained,
+    speakerId: options ? options.speaker_id === true : false,
+    logErrors: log === null ? null : recentLogErrors(log, new Date(Date.now() - 3_600_000), hideSecrets),
+  });
 }
 
 function defaultRuntime(): AppRuntime {
@@ -1032,6 +1154,16 @@ function safeDecodeURIComponent(value: string): string {
 }
 
 let codexSignIn: CodexSignIn | null = null;
+let claudeSignInFlow: ClaudeSignIn | null = null;
+
+/** The page's Claude sign-in; the token goes straight into the app's claude_token setting. */
+function claudeSignIn(): ClaudeSignIn {
+  claudeSignInFlow ??= new ClaudeSignIn(async (token) => {
+    await saveAppOptionsForm({ claude_token: token });
+    restartPending.add("app_settings");
+  });
+  return claudeSignInFlow;
+}
 
 function codexSignInFor(config: AppConfig): CodexSignIn {
   codexSignIn ??= new CodexSignIn(config.codexHome);
@@ -1046,5 +1178,6 @@ function signInBody(config: AppConfig): Record<string, unknown> {
     backend: config.modelEnabled ? config.modelBackend : "off",
     signedIn,
     codex: config.modelBackend === "codex" ? codexSignInFor(config).current() : null,
+    claude: config.modelBackend === "claude" ? claudeSignIn().current() : null,
   };
 }

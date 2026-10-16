@@ -30,6 +30,8 @@ export interface TrainingStatus {
   readonly total?: number;
   readonly progress?: number;
   readonly message?: string;
+  /** Household ids with a trained voice. */
+  readonly trained?: readonly string[];
 }
 
 /** Assist satellites that can start a conversation (AssistSatelliteEntityFeature.START_CONVERSATION). */

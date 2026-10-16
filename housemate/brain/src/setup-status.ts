@@ -19,6 +19,10 @@ export interface SetupStatus {
   readonly steps: readonly SetupStep[];
   /** The Housemate Brain conversation agent in Home Assistant, when it is added. */
   readonly agent: string | null;
+  /** Speakers whose voice assistant doesn't use the agent yet. */
+  readonly speakersLeft: readonly string[];
+  /** How to make a voice assistant that uses it, with the names Home Assistant shows. */
+  readonly pipelineHelp: string | null;
 }
 
 export function setupStatus(input: {
@@ -27,6 +31,9 @@ export function setupStatus(input: {
   /** The brain is signed in, or switched off (then nothing to sign in). */
   readonly brainReady: boolean;
   readonly agent: string | null;
+  /** Speakers not using the agent yet; unknown (not given) counts as none. */
+  readonly speakersLeft?: readonly string[];
+  readonly pipelineHelp?: string;
 }): SetupStatus {
   let people = false;
   try {
@@ -38,7 +45,14 @@ export function setupStatus(input: {
     { id: "assistant", done: existsSync(input.personalityFile) },
     { id: "people", done: people },
     { id: "brain", done: input.brainReady },
-    { id: "assist", done: input.agent !== null },
+    { id: "assist", done: input.agent !== null && !input.speakersLeft?.length },
   ];
-  return { ok: true, complete: steps.every((step) => step.done), steps, agent: input.agent };
+  return {
+    ok: true,
+    complete: steps.every((step) => step.done),
+    steps,
+    agent: input.agent,
+    speakersLeft: input.speakersLeft ?? [],
+    pipelineHelp: input.pipelineHelp ?? null,
+  };
 }

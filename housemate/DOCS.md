@@ -27,21 +27,26 @@ choose), and speaks the reply. Each house has its own people, personality and se
    - **People**: who lives here, linked to their Home Assistant people. Then **Train voice** for
      each person, so it knows who is talking.
    - **System**: connect an AI account (below; highly recommended), and the app's settings.
-   A new name or new people take a **Restart Housemate** (the button is on the page).
+   Saves that need a restart say so on the button (**Save and restart**); if you wait, one bar at
+   the top of the page restarts it when you are ready. **Checks** on the Overview shows, red or
+   green, what works and what still needs doing, with a button to the place that fixes it.
 3. **Hearing and voice in Home Assistant.** Settings > Devices & services > Discovered shows the
    Wyoming service: add it (your assistant's Hearing and Voice).
 4. **The brain in Home Assistant.** Install **Housemate Brain** from HACS and restart Home
    Assistant. It is found by itself (Discovered, under your assistant's name): add it.
 5. **A voice assistant.** Settings > Voice assistants > Add: conversation agent your assistant,
    speech-to-text its Hearing, text-to-speech its Voice. Give it to your speakers. The wake word
-   is set on each speaker, not by the name.
+   is set on each speaker, not by the name. The last setup step names the speakers still to do.
+   Rename the assistant later and Home Assistant follows: the agent, its Hearing and its Voice take
+   the new name after the restart (entity ids stay as they are).
 
 The app never writes into your Home Assistant configuration.
 
 ### Signing the AI in
 
-- **Claude**: on any computer with Claude Code, run `claude setup-token` with your own Claude
-  account and paste the token into System > Settings (or use your own Anthropic API key).
+- **Claude**: System > **Sign in with your Claude account**: open the link, sign in, paste the
+  code it shows back into the page, then restart. Or run `claude setup-token` on any computer with
+  Claude Code and paste the token into System > Settings, or use your own Anthropic API key.
 - **Codex**: System > Sign in with your OpenAI account, or your own OpenAI API key.
 
 Every account and key is yours; nothing is billed through us.

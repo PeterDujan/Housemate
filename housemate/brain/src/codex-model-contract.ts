@@ -32,6 +32,8 @@ export function effectiveCodexModelName(config: Pick<AppConfig, "model">): strin
   const configured = trimmed.toLowerCase().startsWith("codex-")
     ? trimmed.slice("codex-".length)
     : trimmed;
+  // The app's Default model is a Claude one: with Codex picked it means Codex's own default.
+  if (!configured || /^(?:claude|opus|sonnet|haiku)\b/i.test(configured)) return "gpt-5.6-terra";
   if (configured === "gpt-5.4-mini") return "gpt-5.6-terra";
   if (configured === "gpt-5.4") return "gpt-5.6-terra";
   return configured;

@@ -1,6 +1,6 @@
 {
   "name": "housemate-brain",
-  "version": "0.0.467",
+  "version": "0.0.468",
   "private": true,
   "type": "module",
   "description": "Fast deterministic voice-first Home Assistant brain for Housemate.",

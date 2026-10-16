@@ -35,6 +35,7 @@ import {
   type HouseDiscoveryOptions,
 } from "./house-discovery.js";
 import { HousemateChat, PageActions } from "./chat-settings-tools.js";
+import { AssistSetupReader, notifyPhones } from "./assist-setup.js";
 import { memoryArchiveActive, memoryArchiveAvailable } from "./memory-archive.js";
 import { startHousePatternRefresh } from "./house-pattern-refresh-job.js";
 import { LOG_RETENTION_DAYS, startLogRetention } from "./log-retention.js";
@@ -383,6 +384,12 @@ export function createLaunchRuntime(config: AppConfig, options: LaunchRuntimeOpt
       : {}),
     ...(houseDiscovery ? { houseDiscovery } : {}),
     pageActions,
+    ...(live
+      ? {
+        assistSetup: () => new AssistSetupReader({ stateCache, registry, client: () => live.client }).read(),
+        notifyPhones: () => notifyPhones(live.client),
+      }
+      : {}),
     brainAgent: () => registry.allEntities()
       .find((entity) => entity.platform === "housemate" && entity.entityId.startsWith("conversation."))?.entityId ?? null,
     haPersons: () => stateCache.entries()

@@ -466,7 +466,9 @@ def discoveries(config: dict, name: str) -> list:
     """What HA is told about: the hearing/voice service (Wyoming) and the brain (Housemate Brain)."""
     return [
         ("wyoming", {"uri": f"tcp://127.0.0.1:{config['assist_wyoming_port']}"}),
-        ("housemate", {"host": "127.0.0.1", "port": int(config["assist_turn_port"]), "name": name}),
+        # The Wyoming port too: renamed, Housemate Brain reloads the app's Hearing and Voice to take the new name.
+        ("housemate", {"host": "127.0.0.1", "port": int(config["assist_turn_port"]), "name": name,
+                       "wyoming_port": int(config["assist_wyoming_port"])}),
     ]
 
 

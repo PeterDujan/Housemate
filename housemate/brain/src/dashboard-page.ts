@@ -132,6 +132,9 @@ export function dashboardPageHtml(): string {
     .field select { width: 100%; min-height: 36px; font: inherit; font-size: 0.9rem; color: var(--lx-ink); background: rgba(0,0,0,0.28); border: 1px solid var(--lx-line-2); border-radius: var(--lx-r); padding: 0 10px; color-scheme: dark; }
     .people-foot { margin-top: 14px; }
     .people.dirty ~ .people-foot .form-note:empty::before { content: "Unsaved changes"; color: var(--lx-warn); }
+    /* One way to save: a Save button shows up under what you change, with "Unsaved changes" beside it. */
+    .form:not(.dirty) [data-dirty-only], .people:not(.dirty) ~ .people-foot [data-dirty-only] { display: none; }
+    .block-save .form-note:empty::before { content: "Unsaved changes"; color: var(--lx-warn); }
     .progress { height: 8px; border-radius: var(--lx-r); background: var(--lx-fill-2); overflow: hidden; margin: 6px 0 12px; }
     .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, rgba(var(--lx-gold-rgb),0.55), var(--lx-gold)); transition: width 0.5s var(--lx-ease); }
     .training-text { color: var(--lx-ink); font-size: 0.92rem; margin-bottom: 12px; }
@@ -143,7 +146,18 @@ export function dashboardPageHtml(): string {
     .step.done .tick { border-color: rgba(var(--lx-ok-rgb),0.5); background: rgba(var(--lx-ok-rgb),0.12); }
     .step.done .row-help { display: none; }
     .view .panel.setup + .metrics { margin-top: 14px; }
-    .restart-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--lx-r); border: 1px solid rgba(var(--lx-warn-rgb),0.45); background: rgba(var(--lx-warn-rgb),0.10); color: var(--lx-ink); font-size: 0.86rem; }
+    .view .metrics + .panel { margin-top: 0; }
+    .restart-bar { position: sticky; top: 10px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 16px; border-radius: var(--lx-r); border: 1px solid rgba(var(--lx-warn-rgb),0.45); background: rgba(40,34,20,0.92); color: var(--lx-ink); font-size: 0.86rem; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    /* Checks: red/green lines, each with why and where to fix it */
+    .checks { list-style: none; margin: 0; padding: 0; display: grid; }
+    .check { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 11px 0; border-top: 1px solid var(--lx-line); }
+    .check:first-child { border-top: 0; padding-top: 2px; }
+    .check .dot { margin-top: 1px; }
+    .dot.warn { background: var(--lx-warn); box-shadow: 0 0 0 3px rgba(var(--lx-warn-rgb),0.14); }
+    .checks-ok summary { cursor: pointer; color: var(--lx-ink-3); font-size: 0.8rem; padding: 12px 0 2px; border-top: 1px solid var(--lx-line); }
+    .checks-ok[open] summary { margin-bottom: 4px; }
+    a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; white-space: nowrap; }
+    .signin-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 12px; }
 
     .eyebrow { color: var(--lx-gold); font-size: 0.64rem; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; margin-bottom: 6px; }
     h1 { margin: 0; color: var(--lx-ink); font-size: 1.6rem; font-weight: 250; letter-spacing: -0.01em; line-height: 1.1; overflow-wrap: anywhere; }
@@ -316,7 +330,9 @@ export function dashboardPageHtml(): string {
       .field-pair { grid-template-columns: 1fr; }
       .field select { font-size: 16px; min-height: 44px; }
       .step { grid-template-columns: 24px minmax(0, 1fr); }
-      .step .btn { grid-column: 2; justify-self: start; }
+      .step .btn, .check .btn { grid-column: 2; justify-self: start; }
+      .check { grid-template-columns: 10px minmax(0, 1fr); }
+      .signin-code { grid-template-columns: 1fr; }
       .composer .btn { width: 100%; }
       .btn { min-height: 44px; }
       .actions.small .btn { min-height: 38px; }
@@ -360,13 +376,16 @@ export function dashboardPageHtml(): string {
         <button type="button" class="nav-item" id="nav-assistant" data-view="assistant" aria-current="false">Assistant<span class="count" id="count-assistant"></span></button>
         <button type="button" class="nav-item" id="nav-people" data-view="people" aria-current="false">People<span class="count" id="count-people"></span></button>
         <button type="button" class="nav-item" id="nav-memory" data-view="memory" aria-current="false">Memory<span class="count" id="count-memory"></span></button>
-        <button type="button" class="nav-item" id="nav-speaking" data-view="speaking" aria-current="false">Speaking up<span class="count" id="count-speaking"></span></button>
         <button type="button" class="nav-item" id="nav-house" data-view="house" aria-current="false">House<span class="count" id="count-house"></span></button>
         <button type="button" class="nav-item" id="nav-system" data-view="system" aria-current="false">System<span class="count" id="count-system"></span></button>
       </nav>
     </aside>
 
     <main class="main">
+      <div class="restart-bar" id="restart-bar" hidden>
+        <span id="restart-text">Saved. Restart Housemate to use it.</span>
+        <button type="button" class="btn" data-restart>Restart Housemate</button>
+      </div>
       <section class="view" id="view-overview" aria-labelledby="nav-overview">
         <header class="view-head"><h2>Overview</h2><p>How ${name} is doing right now.</p></header>
         <div class="panel wide setup" id="setup-panel" hidden>
@@ -375,10 +394,16 @@ export function dashboardPageHtml(): string {
           <ol class="steps" id="setup-steps"></ol>
         </div>
         <div class="metrics" id="metrics"></div>
-        <div class="panel" id="turns-panel">
-          <div class="plabel">Recent Turns</div>
-          <div class="ptitle">What ${name} heard</div>
-          <div id="turns" class="empty">No turns logged yet.</div>
+        <div class="panel wide" id="checks-panel">
+          <div class="plabel">Checks</div>
+          <div class="ptitle" id="checks-title">Is everything working?</div>
+          <div class="actions" style="margin: -4px 0 12px"><button type="button" class="btn quiet" id="checks-again">Check again</button></div>
+          <div id="checks" class="empty">Checking...</div>
+        </div>
+        <div class="panel" id="turns-panel" style="margin-top: 14px">
+          <div class="plabel">Recent Conversations</div>
+          <div class="ptitle">What was said to ${name}, and the answers</div>
+          <div id="turns" class="empty">Nothing said yet.</div>
         </div>
       </section>
       <section class="view" id="view-chat" aria-labelledby="nav-chat" hidden>
@@ -406,8 +431,8 @@ export function dashboardPageHtml(): string {
               </div></div>
               <label class="field"><span>Nicknames</span><input type="text" name="aliases" autocomplete="off" placeholder="Separate with commas"><small>Other names it answers to when spoken to.</small></label>
               <label class="field"><span>Often misheard as</span><input type="text" name="misheard_as" autocomplete="off" placeholder="Separate with commas"><small>How speech-to-text gets the name wrong, so it still knows it is meant.</small></label>
-              <div class="form-foot"><button type="submit" class="btn">Save</button><button type="button" class="btn quiet" data-persona-undo>Undo changes</button><span class="form-note" aria-live="polite"></span></div>
-              <small class="hint">A new name or pronoun takes a restart of Housemate. The wake word is set on each speaker, not here.</small>
+              <div class="form-foot"><button type="submit" class="btn" data-dirty-only>Save and restart</button><button type="button" class="btn quiet" data-persona-undo data-dirty-only>Undo changes</button><span class="form-note" aria-live="polite"></span></div>
+              <small class="hint">The wake word is set on each speaker, not here.</small>
             </form>
           </div>
           <div class="panel" id="settings-talking">
@@ -422,16 +447,16 @@ export function dashboardPageHtml(): string {
           <div class="ptitle">Who ${name} is, in ${their} own words</div>
           <form id="persona-text" class="form" data-persona-form="text" novalidate>
             <label class="field"><span>Character</span><textarea name="character" rows="10"></textarea><small>One trait per line. Write {name} where the name goes.</small></label>
-            <label class="field"><span>Chat style</span><input type="text" name="turn_mode" maxlength="400" autocomplete="off"><small>One line on how to answer in open chat.</small></label>
+            <label class="field"><span>How it answers in chat</span><input type="text" name="turn_mode" maxlength="400" autocomplete="off"><small>One line, like "Short and dry, with the odd joke."</small></label>
             <div class="field-pair">
               <label class="field"><span>"Who made you?"</span><input type="text" name="creator" maxlength="400" autocomplete="off"></label>
               <label class="field"><span>"How old are you?"</span><input type="text" name="age_answer" maxlength="400" autocomplete="off"></label>
             </div>
             <label class="field"><span>Introductions</span><textarea name="introductions" rows="3"></textarea><small>Answers to "who are you?", one per line; one is picked each time.</small></label>
-            <details class="more"><summary>Identity rules</summary>
-              <label class="field"><span>Identity</span><textarea name="identity" rows="10"></textarea><small>The ground rules the model always gets. Change with care.</small></label>
+            <details class="more"><summary>Ground rules (advanced)</summary>
+              <label class="field"><span>Ground rules</span><textarea name="identity" rows="10"></textarea><small>What the AI is always told about who ${name} is. Change with care.</small></label>
             </details>
-            <div class="form-foot"><button type="submit" class="btn">Save</button><button type="button" class="btn quiet" data-persona-undo>Undo changes</button><button type="button" class="link" data-persona-defaults>Use the defaults</button><span class="form-note" aria-live="polite"></span></div>
+            <div class="form-foot"><button type="submit" class="btn" data-dirty-only>Save</button><button type="button" class="btn quiet" data-persona-undo data-dirty-only>Undo changes</button><button type="button" class="link" data-persona-defaults>Use the defaults</button><span class="form-note" aria-live="polite"></span></div>
           </form>
         </div>
         <div class="panel wide" id="voice-words-panel">
@@ -443,13 +468,8 @@ export function dashboardPageHtml(): string {
               <label class="field"><span>Goodbye</span><input type="text" name="goodbye" maxlength="60" autocomplete="off"><small>Said when a conversation ends.</small></label>
             </div>
             <label class="field"><span>Stop phrase</span><input type="text" name="stop_phrase" maxlength="60" autocomplete="off"><small>Say this to end a conversation straight away.</small></label>
-            <div class="form-foot"><button type="submit" class="btn">Save</button><span class="form-note" aria-live="polite"></span></div>
-            <small class="hint">These take a restart of Housemate.</small>
+            <div class="form-foot"><button type="submit" class="btn" data-dirty-only>Save and restart</button><span class="form-note" aria-live="polite"></span></div>
           </form>
-        </div>
-        <div class="restart-bar" id="restart-bar" hidden>
-          <span>Saved. Restart Housemate to use the change.</span>
-          <button type="button" class="btn" data-restart>Restart Housemate</button>
         </div>
         <div class="grid">
           <div class="panel" id="growth-panel">
@@ -472,11 +492,11 @@ export function dashboardPageHtml(): string {
           <div id="people-list" class="people empty">Loading...</div>
           <div class="people-add"><button type="button" class="btn quiet" data-people-add>Add person</button></div>
           <div class="form-foot people-foot">
-            <button type="button" class="btn" data-people-save>Save</button>
-            <button type="button" class="btn quiet" data-people-undo>Undo changes</button>
+            <button type="button" class="btn" data-people-save data-dirty-only>Save and restart</button>
+            <button type="button" class="btn quiet" data-people-undo data-dirty-only>Undo changes</button>
             <span class="form-note" id="people-note" aria-live="polite"></span>
           </div>
-          <small class="hint">Link each person to their Home Assistant person (Settings &gt; People) so ${name} knows who is who. Changes take a restart of Housemate.</small>
+          <small class="hint">Link each person to their Home Assistant person (Settings &gt; People) so ${name} knows who is who.</small>
         </div>
         <div class="panel wide" id="training-panel" hidden>
           <div class="plabel">Voice Training</div>
@@ -493,10 +513,6 @@ export function dashboardPageHtml(): string {
           </div>
           <small class="hint">Recordings are kept only until training finishes, then deleted. Training again replaces the old voice. If a later update changes voice recognition, everyone trains again.</small>
         </div>
-        <div class="restart-bar" id="people-restart" hidden>
-          <span>Saved. Restart Housemate to use the new household.</span>
-          <button type="button" class="btn" data-restart>Restart Housemate</button>
-        </div>
       </section>
       <section class="view" id="view-memory" aria-labelledby="nav-memory" hidden>
         <header class="view-head"><h2>Memory</h2><p>What ${name} keeps, and what needs a look.</p></header>
@@ -504,13 +520,9 @@ export function dashboardPageHtml(): string {
           <div class="stack">
             <div class="panel" id="held-panel">
               <div class="plabel">Memories To Check</div>
-              <div class="ptitle">Things ${name} wants to keep</div>
+              <div class="ptitle">New things ${name} wants to keep, and kept ones it isn't sure about</div>
               <div id="held" class="empty">Nothing waiting.</div>
-            </div>
-            <div class="panel" id="review-panel">
-              <div class="plabel">Review Queue</div>
-              <div class="ptitle">Memory review</div>
-              <div id="review" class="empty">Review queue clear.</div>
+              <div id="review"></div>
             </div>
             <div class="panel" id="corrections-panel">
               <div class="plabel">Corrections</div>
@@ -557,7 +569,7 @@ export function dashboardPageHtml(): string {
             <div class="panel" id="house-found">
               <div class="plabel">From Home Assistant</div>
               <div class="ptitle">Set up from your Home Assistant</div>
-              <div class="live-note">${name} fills these in from your Home Assistant, and adds anything new by itself. Change anything here and a Save button appears under it.</div>
+              <div class="live-note">${name} fills these in from your Home Assistant, and adds anything new by itself. Change anything here and a Save button appears under it. No restart.</div>
               <div class="actions" style="margin: -4px 0 12px"><button type="button" class="btn quiet" id="house-look">Look again</button></div>
               <div id="house-found-rows" class="empty">Loading...</div>
             </div>
@@ -585,11 +597,11 @@ export function dashboardPageHtml(): string {
         </div>
       </section>
       <section class="view" id="view-system" aria-labelledby="nav-system" hidden>
-        <header class="view-head"><h2>System</h2><p>Sign-in and the app itself.</p></header>
+        <header class="view-head"><h2>System</h2><p>Signing in, settings, and the app itself.</p></header>
         <div class="grid">
           <div class="panel" id="settings-signin">
             <div class="plabel">Sign-in</div>
-            <div class="ptitle">${name}'s brain</div>
+            <div class="ptitle">The AI for open chat</div>
             <div id="signin-body" class="empty">Loading...</div>
           </div>
           <div class="panel" id="system-panel">
@@ -601,13 +613,13 @@ export function dashboardPageHtml(): string {
         <div class="panel wide" id="app-options-panel">
           <div class="plabel">Settings</div>
           <div class="ptitle">AI, hearing, voice and the house</div>
-          <div class="live-note">Keys are never shown; leave a key blank to keep it. Saving takes a restart of Housemate.</div>
+          <div class="live-note">Keys are never shown; leave a key blank to keep it. Change anything and a Save button appears under it.</div>
           <div id="app-options" class="empty">Loading...</div>
         </div>
         <div class="panel wide" id="media-apps-panel">
           <div class="plabel">Media apps</div>
           <div class="ptitle">Where ${name} looks up films, shows and requests</div>
-          <div class="live-note">Found in your Home Assistant integrations. Type an address to use another; clear it to go back. Takes a restart of Housemate.</div>
+          <div class="live-note">Found in your Home Assistant integrations. Type an address to use another; clear it to go back.</div>
           <div id="media-apps" class="empty">Loading...</div>
         </div>
       </section>
@@ -634,10 +646,12 @@ export function dashboardPageHtml(): string {
     var send = document.getElementById("send");
     var errorBox = document.getElementById("error");
     var helpersBox = document.getElementById("helpers");
-    var VIEWS = ["overview", "chat", "assistant", "people", "memory", "speaking", "house", "system"];
+    // Speaking up is kept but out of the nav until proactive is available again; its links land on Overview.
+    var VIEWS = ["overview", "chat", "assistant", "people", "memory", "house", "system"];
     // Old links (#review, #settings, ".../dashboard-ui/settings") still land somewhere sensible.
-    var OLD_VIEWS = { review: "memory", settings: "assistant" };
-    var SETTINGS_VIEWS = ["assistant", "memory", "speaking", "house", "system"];
+    var OLD_VIEWS = { review: "memory", settings: "assistant", speaking: "overview" };
+    var SETTINGS_VIEWS = ["assistant", "memory", "house", "system"];
+    var currentView = null;
     var EFFORT_LABELS = { low: "Quick", medium: "Normal", high: "Careful", "default": "Auto" };
     var chatSessionKey = "housemate-session-id";
     var chatSessionId = null;
@@ -704,6 +718,9 @@ export function dashboardPageHtml(): string {
     function showView(name, remember) {
       name = OLD_VIEWS[name] || name;
       if (VIEWS.indexOf(name) < 0) name = "overview";
+      if (currentView && currentView !== name && viewDirty(currentView)
+        && !window.confirm("You have unsaved changes here. Leave them unsaved?")) return;
+      currentView = name;
       VIEWS.forEach(function (view) {
         document.getElementById("nav-" + view).setAttribute("aria-current", view === name ? "page" : "false");
         document.getElementById("view-" + view).hidden = view !== name;
@@ -715,7 +732,7 @@ export function dashboardPageHtml(): string {
       if (name === "house") { loadNames(); loadDiscovery(); }
       if (name === "people") { loadPeople(); loadTraining(); }
       if (name === "assistant") { loadPersona(); loadVoiceWords(); }
-      if (name === "overview") loadSetup();
+      if (name === "overview") { loadSetup(); loadChecks(); }
       if (name === "system") { loadSystem(); loadAppOptions(); loadMediaApps(); }
       window.scrollTo(0, 0);
     }
@@ -736,16 +753,55 @@ export function dashboardPageHtml(): string {
     });
 
     function setCount(view, count) {
-      document.getElementById("count-" + view).textContent = count ? String(count) : "";
+      var badge = document.getElementById("count-" + view);
+      if (badge) badge.textContent = count ? String(count) : "";
+    }
+
+    /* One way to save: what is changed but not saved, per section; leaving warns. */
+    function viewDirty(view) {
+      if (view === "assistant") return Boolean(document.querySelector("#view-assistant .form.dirty"));
+      if (view === "people") return peopleDirty();
+      if (view === "house") return Boolean(houseDraft && Object.keys(HOUSE_BLOCKS).some(blockDirty)) || nameEditing !== null;
+      if (view === "system") return Object.keys(optionsDirty).length > 0 || Object.keys(mediaDirty).length > 0;
+      return false;
+    }
+    var leaving = false;
+    window.addEventListener("beforeunload", function (event) {
+      if (leaving || !VIEWS.some(viewDirty)) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+
+    /* The one restart bar: what is saved but waits for a restart, from the app itself. */
+    var restartWaiting = [];
+    function showRestartBar(waiting) {
+      if (waiting) restartWaiting = waiting;
+      var bar = document.getElementById("restart-bar");
+      bar.hidden = !restartWaiting.length;
+      document.getElementById("restart-text").textContent = "Saved, waiting for a restart: " + restartWaiting.join(", ") + ".";
+    }
+
+    /* A Save that needs a restart: saved, then restart now, or later from the bar. */
+    function restartAfterSave() {
+      if (window.confirm("Saved. Restart Housemate now to use it? Voice and chat stop for about a minute.")) restartNow();
+      else loadDashboard();
     }
 
     /* System: the app's own settings, one Save per group */
     var optionsBox = document.getElementById("app-options");
     var optionsState = null;
-    var optionsRestart = false;
+    var optionsDirty = {};
 
     function optionInput(field) {
       var id = "opt-" + field.key;
+      if (field.kind === "pick") {
+        var listed = field.choices.some(function (choice) { return choice.value === field.value; });
+        var typed = Boolean(field.other && field.value && !listed);
+        return '<select class="pick" id="' + id + '" data-option="' + field.key + '">' + field.choices.map(function (choice) {
+          return '<option value="' + esc(choice.value) + '"' + (choice.brain ? ' data-brain="' + esc(choice.brain) + '"' : "") + (choice.value === field.value ? " selected" : "") + '>' + esc(choice.label) + '</option>';
+        }).join("") + (field.other ? '<option value="__other"' + (typed ? " selected" : "") + '>Other...</option>' : "") + '</select>'
+          + (field.other ? '<input type="text" data-option-other="' + field.key + '" autocomplete="off" placeholder="Type it" aria-label="' + esc(field.label) + '" value="' + esc(typed ? field.value : "") + '"' + (typed ? "" : " hidden") + ' style="margin-top: 6px">' : "");
+      }
       if (field.kind === "choice") {
         return '<select class="pick" id="' + id + '" data-option="' + field.key + '">' + field.choices.map(function (choice) {
           return '<option value="' + esc(choice.value) + '"' + (choice.value === field.value ? " selected" : "") + '>' + esc(choice.label) + '</option>';
@@ -767,11 +823,25 @@ export function dashboardPageHtml(): string {
           + '<div class="option-grid">' + group.fields.map(function (field) {
             return '<label class="field"><span>' + esc(field.label) + '</span>' + optionInput(field) + (field.help ? '<small>' + esc(field.help) + '</small>' : "") + '</label>';
           }).join("") + '</div>'
-          + '<div class="actions block-save" data-option-save hidden><button type="button" class="btn" data-option-button>Save</button></div></div>';
-      }).join("") + (optionsRestart ? '<div class="restart-bar" style="margin-top: 12px"><span>Saved. Restart Housemate to use it.</span><button type="button" class="btn" data-restart>Restart Housemate</button></div>' : "");
+          + '<div class="actions block-save" data-option-save hidden><button type="button" class="btn" data-option-button>Save and restart</button><span class="form-note"></span></div></div>';
+      }).join("");
+      optionsDirty = {};
+      showModelsFor(optionsBox.querySelector('[data-option="brain"]'));
+    }
+
+    /* The Model list shows the picked AI's models. */
+    function showModelsFor(brain) {
+      var model = optionsBox.querySelector('select[data-option="model"]');
+      if (!brain || !model) return;
+      Array.prototype.forEach.call(model.options, function (option) {
+        var only = option.getAttribute("data-brain");
+        option.hidden = Boolean(only && only !== brain.value);
+      });
+      if (model.selectedOptions[0] && model.selectedOptions[0].hidden) model.value = model.options[0].value;
     }
 
     async function loadAppOptions() {
+      if (Object.keys(optionsDirty).length) return;
       try {
         var response = await fetch("settings/app");
         var body = await response.json();
@@ -786,7 +856,15 @@ export function dashboardPageHtml(): string {
 
     function showOptionSave(event) {
       var group = event.target.closest("[data-option-group]");
-      if (group) group.querySelector("[data-option-save]").hidden = false;
+      if (!group) return;
+      var select = event.target.closest("select[data-option]");
+      if (select) {
+        var other = group.querySelector('[data-option-other="' + select.getAttribute("data-option") + '"]');
+        if (other) other.hidden = select.value !== "__other";
+        if (select.getAttribute("data-option") === "brain") showModelsFor(select);
+      }
+      optionsDirty[group.getAttribute("data-option-group")] = true;
+      group.querySelector("[data-option-save]").hidden = false;
     }
     optionsBox.addEventListener("input", showOptionSave);
     optionsBox.addEventListener("change", showOptionSave);
@@ -798,13 +876,14 @@ export function dashboardPageHtml(): string {
       var change = {};
       optionsState.groups[Number(group.getAttribute("data-option-group"))].fields.forEach(function (field) {
         var input = group.querySelector('[data-option="' + field.key + '"]');
-        change[field.key] = field.kind === "switch" ? input.checked : input.value;
+        change[field.key] = field.kind === "switch" ? input.checked
+          : input.value === "__other" ? group.querySelector('[data-option-other="' + field.key + '"]').value : input.value;
       });
       button.disabled = true;
       try {
         optionsState = await postJson("settings/app", change);
-        optionsRestart = true;
         renderOptions();
+        restartAfterSave();
       } catch (error) {
         button.disabled = false;
         showError(error);
@@ -816,6 +895,7 @@ export function dashboardPageHtml(): string {
     var MEDIA_SOURCE = { own: "set here", home_assistant: "from Home Assistant", none: "not set up" };
     var mediaBox = document.getElementById("media-apps");
     var mediaState = null;
+    var mediaDirty = {};
 
     function renderMediaApps() {
       mediaBox.className = "";
@@ -824,16 +904,18 @@ export function dashboardPageHtml(): string {
           + ' <span class="meta">' + esc(MEDIA_SOURCE[item.source]) + '</span></div></div>'
           + '<div class="field-pair"><input type="text" data-media-url value="' + esc(item.url || "") + '" placeholder="http://192.168.1.10:7878" aria-label="' + esc(MEDIA_NAMES[item.app]) + ' address">'
           + '<input type="password" data-media-key value="" placeholder="' + (item.hasKey ? "Key kept (type to change)" : "Key or token") + '" autocomplete="off" aria-label="' + esc(MEDIA_NAMES[item.app]) + ' key"></div>'
-          + '<div class="actions block-save" data-media-save hidden><button type="button" class="btn" data-media-button>Save</button></div></div>';
-      }).join("") + (mediaState.restart ? '<div class="restart-bar" style="margin-top: 12px"><span>Saved. Restart Housemate to use it.</span><button type="button" class="btn" data-restart>Restart Housemate</button></div>' : "");
+          + '<div class="actions block-save" data-media-save hidden><button type="button" class="btn" data-media-button>Save and restart</button><span class="form-note"></span></div></div>';
+      }).join("");
+      mediaDirty = {};
     }
 
     async function loadMediaApps() {
+      if (Object.keys(mediaDirty).length) return;
       try {
         var response = await fetch("settings/media-apps");
         var body = await response.json();
         if (!response.ok || body.ok === false) throw new Error(body.error || "media apps failed");
-        mediaState = Object.assign({ restart: mediaState ? mediaState.restart : false }, body);
+        mediaState = body;
         renderMediaApps();
       } catch (error) {
         mediaBox.className = "empty";
@@ -843,7 +925,9 @@ export function dashboardPageHtml(): string {
 
     mediaBox.addEventListener("input", function (event) {
       var block = event.target.closest("[data-media]");
-      if (block) block.querySelector("[data-media-save]").hidden = false;
+      if (!block) return;
+      mediaDirty[block.getAttribute("data-media")] = true;
+      block.querySelector("[data-media-save]").hidden = false;
     });
 
     mediaBox.addEventListener("click", async function (event) {
@@ -857,8 +941,9 @@ export function dashboardPageHtml(): string {
           url: block.querySelector("[data-media-url]").value,
           key: block.querySelector("[data-media-key]").value
         });
-        mediaState = Object.assign({ restart: true }, body);
+        mediaState = body;
         renderMediaApps();
+        restartAfterSave();
       } catch (error) {
         button.disabled = false;
         showError(error);
@@ -872,7 +957,7 @@ export function dashboardPageHtml(): string {
         var body = await response.json();
         var up = Math.round((body.uptimeMs || 0) / 60000);
         box.className = "";
-        box.innerHTML = '<div class="row"><div><div class="row-name">Brain version</div></div><span class="lock">' + esc(body.version) + '</span></div>'
+        box.innerHTML = '<div class="row"><div><div class="row-name">Version</div></div><span class="lock">' + esc(body.version) + '</span></div>'
           + '<div class="row"><div><div class="row-name">Running for</div></div><span class="lock">' + esc(up < 120 ? up + " min" : Math.round(up / 60) + " h") + '</span></div>'
           + '<div class="live-note" style="margin: 12px 0">Ports and folders are on the app&#39;s Configuration tab in Home Assistant.</div>'
           + '<button type="button" class="btn quiet" data-restart>Restart Housemate</button>';
@@ -942,11 +1027,6 @@ export function dashboardPageHtml(): string {
       note.className = "form-note" + (tone ? " " + tone : "");
     }
 
-    var voiceWordsPending = false;
-    function showRestartBar(on) {
-      document.getElementById("restart-bar").hidden = !(on || voiceWordsPending || (personaState && personaState.restartPending));
-    }
-
     var voiceWordsForm = document.getElementById("voice-words");
     function voiceWordsNote(text, tone) {
       var note = voiceWordsForm.querySelector(".form-note");
@@ -962,8 +1042,6 @@ export function dashboardPageHtml(): string {
         var body = await response.json();
         if (!response.ok || body.ok === false) throw new Error(body.error || "spoken words failed");
         if (!voiceWordsForm.classList.contains("dirty")) fillVoiceWords(body.words);
-        voiceWordsPending = body.restartPending;
-        showRestartBar(false);
       } catch (error) {
         showError(error);
       }
@@ -982,9 +1060,8 @@ export function dashboardPageHtml(): string {
         });
         voiceWordsForm.classList.remove("dirty");
         fillVoiceWords(body.words);
-        voiceWordsPending = body.restartPending;
-        voiceWordsNote("Saved. Takes effect after a restart.", "ok");
-        showRestartBar(false);
+        voiceWordsNote("Saved.", "ok");
+        restartAfterSave();
       } catch (error) {
         voiceWordsNote(error instanceof Error ? error.message : String(error), "bad");
       } finally {
@@ -1001,7 +1078,6 @@ export function dashboardPageHtml(): string {
         ["name", "text"].forEach(function (kind) {
           if (!personaForm(kind).classList.contains("dirty")) fillPersona(kind, body.fields);
         });
-        showRestartBar(body.restartPending);
       } catch (error) {
         showError(error);
       }
@@ -1039,8 +1115,8 @@ export function dashboardPageHtml(): string {
           var body = await postJson("settings/persona", collectPersona(kind));
           personaState = body;
           fillPersona(kind, body.fields);
-          personaNote(kind, body.applied === "live" ? "Saved. Live now." : "Saved. Takes effect after a restart.", "ok");
-          showRestartBar(body.restartPending);
+          personaNote(kind, body.applied === "live" ? "Saved. Live now." : "Saved.", "ok");
+          if (body.applied !== "live") restartAfterSave();
         } catch (error) {
           personaNote(kind, error instanceof Error ? error.message : String(error), "bad");
         } finally {
@@ -1049,10 +1125,12 @@ export function dashboardPageHtml(): string {
       });
     });
 
-    document.addEventListener("click", async function (event) {
-      var button = event.target.closest("[data-restart]");
-      if (!button) return;
-      if (!window.confirm("Restart Housemate? Voice and chat stop for about a minute.")) return;
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest("[data-restart]")) return;
+      if (window.confirm("Restart Housemate? Voice and chat stop for about a minute.")) restartNow();
+    });
+
+    async function restartNow() {
       var before = null;
       try { before = (await (await fetch("health")).json()).startedAt; } catch (e) {}
       try {
@@ -1068,11 +1146,11 @@ export function dashboardPageHtml(): string {
         tries += 1;
         try {
           var health = await (await fetch("health")).json();
-          if (health.startedAt && health.startedAt !== before) { window.clearInterval(timer); window.location.reload(); }
+          if (health.startedAt && health.startedAt !== before) { window.clearInterval(timer); leaving = true; window.location.reload(); }
         } catch (e) {}
         if (tries > 100) { window.clearInterval(timer); setStatus("restart is taking long; reload the page", false); }
       }, 3000);
-    });
+    }
 
     /* People: who lives here, each linked by hand to a Home Assistant person. */
     var peopleState = null;
@@ -1144,7 +1222,6 @@ export function dashboardPageHtml(): string {
       list.innerHTML = peopleDraft.length
         ? peopleDraft.map(personHtml).join("")
         : '<div class="empty">Nobody yet. Add the people who live here; everyone else is treated as a guest.</div>';
-      document.getElementById("people-restart").hidden = !peopleState.restartPending;
     }
 
     function peopleNote(text, tone) {
@@ -1256,6 +1333,7 @@ export function dashboardPageHtml(): string {
         peopleEditing = -1;
         renderPeople();
         peopleNote("Saved.", "ok");
+        restartAfterSave();
       } catch (error) {
         peopleNote(error instanceof Error ? error.message : String(error), "bad");
       } finally {
@@ -1359,9 +1437,28 @@ export function dashboardPageHtml(): string {
     var SETUP_STEPS = {
       assistant: { title: "Name your assistant", help: "Pick a name, pronoun and personality.", view: "assistant", button: "Assistant" },
       people: { title: "Add who lives here", help: "Add each person, link them to their Home Assistant person, and pick who runs the house.", view: "people", button: "People" },
-      brain: { title: "Connect an AI account", help: "Claude or Codex, with your own account. Highly recommended: the Chat tab can then help with the rest. Pick one in System, Settings.", view: "system", button: "System" },
-      assist: { title: "Add Housemate Brain to Home Assistant", help: "Install Housemate Brain from HACS and restart Home Assistant, then add it under Settings > Devices & services. In Settings > Voice assistants, pick it as the conversation agent, with ${name} Hearing and ${name} Voice.", view: "", button: "" }
+      brain: { title: "Connect an AI account", help: "Claude or Codex, with your own account. Highly recommended: the Chat tab can then help with the rest. Sign in on the System page.", view: "system", button: "System" },
+      assist: { title: "Use ${name} on your speakers", help: "", view: "", button: "" }
     };
+
+    /* The last step, from Home Assistant as it is now. */
+    function assistStep(body) {
+      if (!body.agent) {
+        return { help: "Install Housemate Brain from HACS and restart Home Assistant, then add it under Settings > Devices & services (it shows as Discovered).", ha: "/config/integrations/dashboard", button: "Devices & services" };
+      }
+      var left = body.speakersLeft || [];
+      return {
+        help: "Housemate Brain is added. " + (body.pipelineHelp || "")
+          + (left.length ? " Then pick that assistant for " + left.join(", ") + " (each speaker's device page, Assistant)." : ""),
+        ha: "/config/voice-assistants/assistants", button: "Voice assistants"
+      };
+    }
+
+    function fixButton(fix) {
+      if (!fix) return "<span></span>";
+      if (fix.ha) return '<a class="btn quiet" href="' + esc(fix.ha) + '" target="_top">' + esc(fix.label) + '</a>';
+      return '<button type="button" class="btn quiet" data-view-jump="' + esc(fix.view) + '">' + esc(fix.label) + '</button>';
+    }
 
     async function loadSetup() {
       try {
@@ -1373,11 +1470,13 @@ export function dashboardPageHtml(): string {
         if (body.complete) return;
         document.getElementById("setup-steps").innerHTML = body.steps.map(function (step) {
           var info = SETUP_STEPS[step.id];
+          var live = step.id === "assist" ? assistStep(body) : null;
+          var fix = step.done ? null : live ? { label: live.button, ha: live.ha } : { label: info.button, view: info.view };
           return '<li class="step' + (step.done ? " done" : "") + '">'
             + '<span class="tick" aria-hidden="true">' + (step.done ? "&#10003;" : "") + '</span>'
             + '<div><div class="row-name">' + esc(info.title) + (step.done ? ' <span class="meta">done</span>' : "") + '</div>'
-            + '<div class="row-help">' + esc(info.help) + '</div></div>'
-            + (info.view && !step.done ? '<button type="button" class="btn quiet" data-view-jump="' + info.view + '">' + esc(info.button) + '</button>' : "<span></span>")
+            + '<div class="row-help">' + esc(live ? live.help : info.help) + '</div></div>'
+            + fixButton(fix)
             + '</li>';
         }).join("");
       } catch (e) {}
@@ -1386,6 +1485,46 @@ export function dashboardPageHtml(): string {
     document.getElementById("setup-panel").addEventListener("click", function (event) {
       var jump = event.target.closest("[data-view-jump]");
       if (jump) showView(jump.getAttribute("data-view-jump"));
+    });
+
+    /* Checks: what works and what doesn't, worked out by the app; problems first. */
+    var checksState = null;
+    function checkLine(check) {
+      return '<li class="check"><span class="dot ' + (check.state === "ok" ? "ok" : check.state === "bad" ? "bad" : "warn") + '" aria-label="' + esc(check.state === "ok" ? "Working" : check.state === "bad" ? "Needs fixing" : "Worth a look") + '"></span>'
+        + '<div><div class="row-name">' + esc(check.title) + '</div><div class="row-help">' + esc(check.why) + '</div></div>'
+        + fixButton(check.fix) + '</li>';
+    }
+
+    async function loadChecks() {
+      var box = document.getElementById("checks");
+      try {
+        var response = await fetch("checks");
+        var body = await response.json();
+        if (!response.ok || body.ok === false) throw new Error(body.error || "checks failed");
+        checksState = body;
+        var problems = body.checks.filter(function (check) { return check.state !== "ok"; });
+        var fine = body.checks.filter(function (check) { return check.state === "ok"; });
+        document.getElementById("checks-title").textContent = body.bad ? body.bad + " to fix" + (body.warn ? ", " + body.warn + " worth a look" : "")
+          : body.warn ? "Working. " + body.warn + " worth a look" : "Everything is working";
+        box.className = "";
+        box.innerHTML = (problems.length ? '<ul class="checks">' + problems.map(checkLine).join("") + '</ul>' : "")
+          + (fine.length ? (problems.length
+            ? '<details class="checks-ok"><summary>' + fine.length + ' working</summary><ul class="checks">' + fine.map(checkLine).join("") + '</ul></details>'
+            : '<ul class="checks">' + fine.map(checkLine).join("") + '</ul>') : "");
+      } catch (error) {
+        box.className = "empty";
+        box.textContent = "Couldn't check: " + (error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    document.getElementById("checks-panel").addEventListener("click", async function (event) {
+      var jump = event.target.closest("[data-view-jump]");
+      if (jump) { showView(jump.getAttribute("data-view-jump")); return; }
+      var again = event.target.closest("#checks-again");
+      if (!again) return;
+      again.disabled = true;
+      await Promise.all([loadChecks(), loadSetup()]);
+      again.disabled = false;
     });
 
     /* Chat and review */
@@ -1410,15 +1549,14 @@ export function dashboardPageHtml(): string {
       var heldCount = body && body.heldMemories ? body.heldMemories.items.length : 0;
       var openCorrections = body && body.corrections ? body.corrections.open : 0;
       var reviewRemaining = body && body.review ? (body.review.remaining || 0) : 0;
-      var proactiveWaiting = body && body.proactiveReview ? body.proactiveReview.waiting : 0;
       setCount("memory", heldCount + openCorrections + reviewRemaining);
-      setCount("speaking", proactiveWaiting);
+      showRestartBar(body && body.restartPending ? body.restartPending : []);
+      var average = report && report.latency.averageMs != null ? report.latency.averageMs / 1000 : null;
       metrics.innerHTML = [
-        { label: "Latest Route", value: latest ? latest.route : "n/a", note: latest ? latest.outcome + " · " + latest.latencyMs + " ms" : "No turns yet", target: "turns-panel" },
-        { label: "Turns", value: report ? String(report.latency.turnCount) : "0", note: report && report.latency.averageMs != null ? "avg " + Math.round(report.latency.averageMs) + " ms" : "No latency yet", target: "turns-panel" },
-        { label: "Memories To Check", value: String(heldCount), note: body && body.heldMemories && !body.heldMemories.enabled ? "Memory off" : "Keep or scrap", target: "held-panel" },
-        { label: "Corrections", value: String(openCorrections), note: body && body.corrections && !body.corrections.enabled ? "List off" : "Open", target: "corrections-panel" },
-        { label: "Review Queue", value: String(reviewRemaining), note: "Memory review items", target: "review-panel" }
+        { label: "Checks", value: checksState ? (checksState.bad ? String(checksState.bad) : "OK") : "...", note: checksState ? (checksState.bad ? "to fix" : checksState.warn ? checksState.warn + " worth a look" : "All working") : "Checking", target: "checks-panel" },
+        { label: "Answered", value: report ? String(report.latency.turnCount) : "0", note: average !== null ? "Usually in " + (average < 10 ? average.toFixed(1) : Math.round(average)) + " s" : (latest ? "" : "Nothing yet"), target: "turns-panel" },
+        { label: "Memories To Check", value: String(heldCount + reviewRemaining), note: body && body.heldMemories && !body.heldMemories.enabled ? "Memory off" : "Keep or scrap", target: "held-panel" },
+        { label: "Corrections", value: String(openCorrections), note: body && body.corrections && !body.corrections.enabled ? "List off" : "Open", target: "corrections-panel" }
       ].map(function (item) {
         return '<button type="button" class="card" data-target="' + esc(item.target) + '" aria-label="Jump to ' + esc(item.label) + '">'
           + '<div class="label">' + esc(item.label) + '</div>'
@@ -1430,21 +1568,19 @@ export function dashboardPageHtml(): string {
       var turnItems = body && body.recentTurns ? body.recentTurns : [];
       turns.innerHTML = turnItems.length ? turnItems.map(function (turn) {
         return '<div class="item"><div class="head">'
-          + '<span class="route">' + esc(turn.route) + '</span>'
-          + '<span class="meta">' + esc(turn.outcome) + ' · ' + esc(rel(turn.timestamp)) + '</span></div>'
-          + '<div class="line">' + esc(turn.transcript || "No transcript") + '</div>'
-          + '<div class="line answer">' + esc(turn.responseText || "No response text") + '</div>'
-          + (turn.explanation ? '<div class="meta">why: ' + esc(turn.explanation.reason) + '</div>' : "")
-          + (turn.explanation && turn.explanation.sourceLabels && turn.explanation.sourceLabels.length ? '<div class="meta">sources: ' + esc(turn.explanation.sourceLabels.join(", ")) + '</div>' : "")
+          + '<span class="route">' + esc(turn.transcript || "(nothing heard)") + '</span>'
+          + '<span class="meta">' + esc(rel(turn.timestamp)) + '</span></div>'
+          + '<div class="line answer">' + esc(turn.responseText || "(no answer)") + '</div>'
+          + (turn.explanation && turn.explanation.sourceLabels && turn.explanation.sourceLabels.length ? '<div class="meta">from: ' + esc(turn.explanation.sourceLabels.join(", ")) + '</div>' : "")
           + '</div>';
-      }).join("") : '<div class="empty">No turns logged yet.</div>';
+      }).join("") : '<div class="empty">Nothing said yet.</div>';
 
       var correctionItems = body && body.corrections ? body.corrections.items : [];
       corrections.innerHTML = correctionItems.length ? correctionItems.map(function (entry) {
         return '<div class="item"><div class="head">'
-          + '<span class="route">' + esc(entry.corrected ? entry.corrected.route : "no linked answer") + '</span>'
+          + '<span class="route">' + esc(entry.corrected ? entry.corrected.transcript : "An answer it can't find") + '</span>'
           + '<span class="meta">' + esc(entry.speaker) + ' · ' + esc(rel(entry.correction.timestamp)) + '</span></div>'
-          + (entry.corrected ? '<div class="line">' + esc(entry.corrected.transcript) + '</div><div class="line answer">' + esc(entry.corrected.responseText) + '</div>' : "")
+          + (entry.corrected ? '<div class="line answer">' + esc(entry.corrected.responseText) + '</div>' : "")
           + '<div class="line">Correction: ' + esc(entry.correction.transcript) + '</div>'
           + (entry.correctedText ? '<div class="meta">meant: ' + esc(entry.correctedText) + '</div>' : "")
           + '<div class="actions">'
@@ -1454,6 +1590,8 @@ export function dashboardPageHtml(): string {
       }).join("") : '<div class="empty">No open corrections.</div>';
 
       var heldItems = body && body.heldMemories ? body.heldMemories.items : [];
+      var unsure = Boolean(body && body.review && body.review.item);
+      held.className = heldItems.length || unsure ? "" : "empty";
       held.innerHTML = heldItems.length ? heldItems.map(function (item) {
         return '<div class="item"><div class="head">'
           + '<span class="route">' + esc(item.speaker) + '</span>'
@@ -1464,8 +1602,8 @@ export function dashboardPageHtml(): string {
           + '<button type="button" class="btn" data-held="' + esc(item.id) + '" data-verdict="keep">Keep</button>'
           + '<button type="button" class="btn quiet" data-held="' + esc(item.id) + '" data-verdict="bin">Scrap</button>'
           + '</div></div>';
-      }).join("") : (body && body.heldMemories && !body.heldMemories.enabled
-        ? '<div class="empty">Memory reflection is off.</div>'
+      }).join("") : unsure ? "" : (body && body.heldMemories && !body.heldMemories.enabled
+        ? '<div class="empty">Learning from chats is off.</div>'
         : '<div class="empty">Nothing waiting.</div>');
 
       var proactiveBody = body ? body.proactiveReview : null;
@@ -1531,16 +1669,18 @@ export function dashboardPageHtml(): string {
 
       renderGrowth(body ? body.growth : null);
 
+      // Kept memories it isn't sure about (one at a time), under the new ones.
       currentReview = body && body.review ? body.review.item : null;
       setHtml(review, currentReview
-        ? '<div class="item"><div class="head">'
-          + '<span class="route">' + esc(currentReview.memory && (currentReview.memory.title || currentReview.memory.id) || "Queued memory") + '</span>'
-          + '<span class="meta">' + esc(currentReview.memory && currentReview.memory.reviewStatus || "queued") + '</span></div>'
-          + '<div class="line">' + esc(currentReview.memory && currentReview.memory.summary || "No summary") + '</div>'
-          + '<div class="actions small">' + [["approve", "Accept", ""], ["edit", "Edit", " quiet"], ["ignore", "Ignore", " quiet"], ["delete", "Delete", " quiet"], ["redact", "Redact", " quiet"]].map(function (action) {
-            return '<button type="button" class="btn' + action[2] + '" data-review-action="' + action[0] + '">' + action[1] + '</button>';
+        ? '<div class="sub">Not sure about' + (reviewRemaining > 1 ? " (" + reviewRemaining + ")" : "") + '</div>'
+          + '<div class="item"><div class="head">'
+          + '<span class="route">' + esc(currentReview.memory && (currentReview.memory.title || currentReview.memory.id) || "A memory") + '</span>'
+          + '<span class="meta">kept, but unclear</span></div>'
+          + '<div class="line">' + esc(currentReview.memory && currentReview.memory.summary || "") + '</div>'
+          + '<div class="actions small">' + [["approve", "It's right", "", ""], ["edit", "Fix it", " quiet", ""], ["ignore", "Not now", " quiet", ""], ["delete", "Scrap", " quiet", ""], ["redact", "Scrap and wipe", " quiet", "Also blanks out the words it came from"]].map(function (action) {
+            return '<button type="button" class="btn' + action[2] + '" data-review-action="' + action[0] + '"' + (action[3] ? ' title="' + action[3] + '"' : "") + '>' + action[1] + '</button>';
           }).join("") + '</div></div>'
-        : '<div class="empty">Review queue clear.</div>');
+        : "");
     }
 
     async function loadDashboard() {
@@ -1629,17 +1769,23 @@ export function dashboardPageHtml(): string {
       var payload = { reviewId: currentReview.reviewId, action: action };
       if ((action === "delete" || action === "redact") && !window.confirm(button.textContent + ' "' + (memory.title || memory.id) + '"?')) return;
       if (action === "edit") {
-        var summary = window.prompt("Correct summary", memory.summary || "");
+        var summary = window.prompt("What should it remember?", memory.summary || "");
         if (summary === null) return;
         payload.summary = summary;
         var payloadType = memory.payload ? memory.payload.category : "";
-        var value = payloadType === "preference" ? window.prompt("Correct preference value", String(memory.payload.value || "")) : "";
-        var outcome = payloadType === "episodic" ? window.prompt("Correct episode outcome", String(memory.payload.outcome || "")) : "";
-        var occurredAt = payloadType === "episodic" && outcome !== null ? window.prompt("Correct occurrence time (canonical UTC ISO-8601)", String(memory.payload.occurredAt || "")) : "";
-        if (value === null || outcome === null || occurredAt === null) return;
+        var value = payloadType === "preference" ? window.prompt("What they like, in a few words", String(memory.payload.value || "")) : "";
+        var outcome = payloadType === "episodic" ? window.prompt("What happened", String(memory.payload.outcome || "")) : "";
+        var was = payloadType === "episodic" && memory.payload.occurredAt ? new Date(memory.payload.occurredAt) : null;
+        var shownWhen = was && !Number.isNaN(was.getTime()) ? was.getFullYear() + "-" + String(was.getMonth() + 1).padStart(2, "0") + "-" + String(was.getDate()).padStart(2, "0") + " " + String(was.getHours()).padStart(2, "0") + ":" + String(was.getMinutes()).padStart(2, "0") : "";
+        var when = payloadType === "episodic" && outcome !== null ? window.prompt("When it happened, like 2026-03-14 18:30", shownWhen) : "";
+        if (value === null || outcome === null || when === null) return;
         if (value) payload.value = value;
         if (outcome) payload.outcome = outcome;
-        if (occurredAt) payload.occurredAt = occurredAt;
+        if (when && when.trim() !== shownWhen) {
+          var parsed = new Date(when.trim().replace(" ", "T"));
+          if (Number.isNaN(parsed.getTime())) { showError("That time isn't a date and time like 2026-03-14 18:30."); return; }
+          payload.occurredAt = parsed.toISOString();
+        }
       }
       reviewAction(button, "memory/review/decision", payload);
     });
@@ -1661,7 +1807,7 @@ export function dashboardPageHtml(): string {
       var SOURCE = { seed: "as written", nightly: "nightly", rollback: "rolled back" };
       setHtml(growth, '<div class="line">' + (data.enabled
           ? "On: each night at 9:30 ${name} may change a little, from the day's chats."
-          : "Off: ${name} stays as SELF.md says. Switch it on under Settings.") + '</div>'
+          : "Off: ${name} stays as written. Switch on Grow its character (Memory) to let it change.") + '</div>'
         + '<div class="sub">Who ${name} is</div>'
         + data.versions.map(function (version) {
           return '<div class="item"><div class="head"><span class="route">Version ' + esc(version.version) + (version.version === data.current ? " · now" : "") + '</span>'
@@ -1886,7 +2032,7 @@ export function dashboardPageHtml(): string {
         var html = rows.map(settingRow).join("");
         if (group === "memory") {
           html += '<div class="row"><div><div class="row-name">Memory alerts go to</div>'
-            + '<div class="row-help">Set in code; no other phone is allowed.</div></div>'
+            + '<div class="row-help">Only this phone is ever asked. Change it in System, Settings: Approval phone.</div></div>'
             + '<span class="lock">' + esc(body.memoryAlerts.label) + '</span><div class="row-foot"></div></div>';
         }
         box.className = "";
@@ -1901,32 +2047,49 @@ export function dashboardPageHtml(): string {
       var box = document.getElementById("signin-body");
       if (!box) return;
       var html;
+      var flow = body.backend === "codex" ? body.codex : body.claude;
+      flow = flow || { state: "idle" };
+      var vendor = body.backend === "codex" ? "Codex" : "Claude";
       if (body.backend === "off") {
-        html = '<div class="live-note">The AI is off, so house questions are still answered, just without it. Pick Claude or Codex in System, Settings to chat about anything.</div>';
+        html = '<div class="live-note">The AI is off, so house questions are still answered, just without it. Pick Claude or Codex in Settings below to chat about anything.</div>';
+      } else if (flow.state === "done") {
+        html = '<div class="live-note">' + esc(flow.message || "Signed in.") + '</div>';
       } else if (body.signedIn) {
-        html = '<div class="live-note">Signed in to ' + (body.backend === "codex" ? "Codex" : "Claude") + ' with the house&#39;s own account.</div>';
-      } else if (body.backend === "claude") {
-        html = '<div class="live-note">Not signed in. On any computer with Claude Code, run <code>claude setup-token</code> with your own Claude account and paste it into <b>Claude sign-in token</b> in System, Settings, or set your own Anthropic API key there.</div>';
+        html = '<div class="live-note">Signed in to ' + vendor + ' with the house&#39;s own account.</div>';
+      } else if (flow.state === "waiting" && flow.url) {
+        html = '<div class="live-note">' + esc(flow.message || "") + '</div>'
+          + '<div class="row-name"><a href="' + esc(flow.url) + '" target="_blank" rel="noopener">Open the ' + vendor + ' sign-in page</a></div>'
+          + (flow.code ? '<div class="row-name" style="margin-top: 8px">Code: <b>' + esc(flow.code) + '</b></div>' : "")
+          + (body.backend === "claude" ? '<form class="signin-code" id="signin-paste"><input type="text" id="signin-code" autocomplete="off" spellcheck="false" placeholder="Paste the code from Claude&#39;s page" aria-label="Code from Claude&#39;s page"><button type="submit" class="btn">Finish signing in</button></form>' : "");
+      } else if (flow.state === "waiting") {
+        html = '<div class="live-note">' + esc(flow.message || "Starting the sign-in...") + '</div>';
       } else {
-        var codex = body.codex || { state: "idle" };
-        if (codex.state === "waiting" && codex.url) {
-          html = '<div class="live-note">' + esc(codex.message || "") + '</div>'
-            + '<div class="row-name"><a href="' + esc(codex.url) + '" target="_blank" rel="noopener">' + esc(codex.url) + '</a></div>'
-            + (codex.code ? '<div class="row-name">Code: <b>' + esc(codex.code) + '</b></div>' : "");
-        } else {
-          html = '<div class="live-note">' + esc(codex.state === "failed" ? codex.message : "Not signed in to Codex yet.") + '</div>'
-            + '<button type="button" class="btn" id="signin-codex">Sign in with your OpenAI account</button>';
-        }
+        html = '<div class="live-note">' + esc(flow.state === "failed" ? flow.message : "Not signed in to " + vendor + " yet. House questions still work; open chat needs this.") + '</div>'
+          + '<button type="button" class="btn" id="signin-start">Sign in with your ' + (body.backend === "codex" ? "OpenAI" : "Claude") + ' account</button>'
+          + (body.backend === "claude" ? '<div class="live-note" style="margin: 12px 0 0">Or paste a token from <code>claude setup-token</code>, or an Anthropic API key, in Settings below.</div>' : "");
       }
       box.className = "";
       box.innerHTML = html;
-      var button = document.getElementById("signin-codex");
-      if (button) button.addEventListener("click", async function () {
-        button.disabled = true;
-        try { renderSignIn(await postJson("signin", {})); pollSignIn(); } catch (error) { showError(error); button.disabled = false; }
-      });
     }
+    document.getElementById("settings-signin").addEventListener("click", async function (event) {
+      var button = event.target.closest("#signin-start");
+      if (!button) return;
+      button.disabled = true;
+      try { renderSignIn(await postJson("signin", {})); pollSignIn(); } catch (error) { showError(error); button.disabled = false; }
+    });
+    document.getElementById("settings-signin").addEventListener("submit", async function (event) {
+      if (event.target.id !== "signin-paste") return;
+      event.preventDefault();
+      var code = document.getElementById("signin-code").value.trim();
+      if (!code) return;
+      var button = event.target.querySelector("button");
+      button.disabled = true;
+      try { renderSignIn(await postJson("signin", { code: code })); pollSignIn(); } catch (error) { showError(error); button.disabled = false; }
+    });
     async function loadSignIn() {
+      // A half-typed code is not wiped by a refresh.
+      var typing = document.getElementById("signin-code");
+      if (typing && typing.value) return null;
       try {
         var response = await fetch("signin");
         var body = await response.json();
@@ -1940,7 +2103,9 @@ export function dashboardPageHtml(): string {
       if (signInTimer) window.clearTimeout(signInTimer);
       signInTimer = window.setTimeout(async function () {
         var body = await loadSignIn();
-        if (body && body.codex && body.codex.state === "waiting") pollSignIn();
+        var flow = body ? (body.backend === "codex" ? body.codex : body.claude) : null;
+        if (!body || (flow && flow.state === "waiting")) pollSignIn();
+        else if (flow && flow.state === "done") loadDashboard();
       }, 3000);
     }
 
@@ -2179,7 +2344,7 @@ export function dashboardPageHtml(): string {
       return '<div class="house-block"><div class="house-head"><div class="row-name">' + esc(title) + hand + '</div>'
         + '<div class="row-help">' + esc(help) + '</div></div>' + control
         + (block ? '<div class="actions block-save" data-block-save="' + block + '"' + (blockDirty(block) ? "" : " hidden") + '>'
-          + '<button type="button" class="btn" data-save-block="' + block + '">Save</button></div>' : "")
+          + '<button type="button" class="btn" data-save-block="' + block + '">Save</button><span class="form-note"></span></div>' : "")
         + '</div>';
     }
 

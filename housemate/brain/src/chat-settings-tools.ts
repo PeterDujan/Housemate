@@ -1,4 +1,4 @@
-import { OPTION_GROUPS, supervisorAccess, type SupervisorAccess } from "./app-options.js";
+import { OPTION_GROUPS, readAppLog, supervisorAccess, type SupervisorAccess } from "./app-options.js";
 import {
   HOUSE_SETTING_PARTS,
   type ChatSettingsToolName,
@@ -61,6 +61,7 @@ const SECTIONS: Readonly<Record<HousemateSection, string>> = {
   names: "/settings/names",
   voice_training: "/voice-training",
   memory_review: "/memory/review/next",
+  checks: "/checks",
 };
 
 /** Each page action, and the section that shows what it changes. */
@@ -281,12 +282,10 @@ export class HousemateChat {
   /** The app's own recent log (the brain and the voice), newest last, keys hidden. */
   async readLog(search: string, count: number): Promise<string> {
     if (!this.#supervisor.token) return "The log can only be read when Housemate runs as a Home Assistant app.";
-    const response = await this.#supervisor.fetch("http://supervisor/addons/self/logs", {
-      headers: { authorization: `Bearer ${this.#supervisor.token}`, accept: "text/plain" },
-    });
-    if (!response.ok) return "Home Assistant didn't give the log.";
+    const log = await readAppLog(this.#supervisor);
+    if (log === null) return "Home Assistant didn't give the log.";
     const words = search.toLowerCase().split(/\s+/).filter(Boolean);
-    const lines = (await response.text()).split("\n").slice(-LOG_SCAN_LINES)
+    const lines = log.split("\n").slice(-LOG_SCAN_LINES)
       .map((line) => hideSecrets(line.replace(ANSI_COLOUR, "")).trimEnd())
       .filter((line) => line && words.every((word) => line.toLowerCase().includes(word)));
     if (!lines.length) return words.length ? `No recent log lines hold "${search}".` : "The log is empty.";
@@ -381,7 +380,7 @@ function pageError(reply: PageReply): string {
 }
 
 /** Bearer tokens and long key-like strings, hidden from the AI. */
-function hideSecrets(line: string): string {
+export function hideSecrets(line: string): string {
   return line
     .replace(/\b(bearer|token|key|secret|password)(["':=\s]+)[^\s"',]+/gi, "$1$2[hidden]")
     .replace(/[A-Za-z0-9+/_-]{32,}={0,2}/g, (match) => (match.match(/\d/g) ?? []).length >= 3 && /[A-Za-z]/.test(match) ? "[hidden]" : match);

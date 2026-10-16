@@ -69,7 +69,7 @@ export const CHAT_SETTINGS_TOOL_NAMES: readonly ChatSettingsToolName[] = ["read_
 /** The page's sections the Chat tab reads, as the page reads them. */
 export const HOUSEMATE_SECTIONS = [
   "status", "overview", "setup", "sign_in", "switches", "personality", "people", "spoken_words", "media_apps",
-  "app_settings", "names", "voice_training", "memory_review",
+  "app_settings", "names", "voice_training", "memory_review", "checks",
 ] as const;
 
 export type HousemateSection = (typeof HOUSEMATE_SECTIONS)[number];
@@ -487,7 +487,7 @@ export function chatToolDefinitions() {
   },
   {
     name: "read_housemate",
-    description: "Only in the Housemate page's Chat tab: read one section of the Housemate page as JSON, exactly as the page shows it. status: version, readiness and AI budget; overview: the page's front summary; setup: what is left to set up; sign_in: the AI sign-in; switches: Housemate's on/off and choice settings plus quiet hours and speak-up; personality: the name and personality; people: who lives here and their Home Assistant links; spoken_words: greeting, goodbye and stop phrase; media_apps: Plex, Radarr, Sonarr and Overseerr; app_settings: AI, hearing, voice, place and approval phone; names: the house's own names for devices; voice_training: speakers and voice training status; memory_review: the next memory waiting for review. Keys are never shown, only whether one is set.",
+    description: "Only in the Housemate page's Chat tab: read one section of the Housemate page as JSON, exactly as the page shows it. status: version, readiness and AI budget; overview: the page's front summary; setup: what is left to set up; sign_in: the AI sign-in; switches: Housemate's on/off and choice settings plus quiet hours and speak-up; personality: the name and personality; people: who lives here and their Home Assistant links; spoken_words: greeting, goodbye and stop phrase; media_apps: Plex, Radarr, Sonarr and Overseerr; app_settings: AI, hearing, voice, place and approval phone; names: the house's own names for devices; voice_training: speakers and voice training status; memory_review: the next memory waiting for review; checks: the page's red/green list of what works and what needs fixing, each with why and where to fix it (read this first when someone asks what is wrong or how to finish setting up). Keys are never shown, only whether one is set.",
     inputSchema: {
       type: "object",
       properties: {

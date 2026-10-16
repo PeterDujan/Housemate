@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 import aiohttp
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import SOURCE_IGNORE, ConfigFlow, ConfigFlowResult
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.hassio import HassioServiceInfo
 import voluptuous as vol
 
-from .const import CONF_HOST, CONF_NAME, CONF_PORT, DEFAULT_HOST, DEFAULT_PORT, DOMAIN, TURN_PATH
+from .const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_WYOMING_PORT, DEFAULT_HOST, DEFAULT_PORT, DOMAIN, TURN_PATH
 from .turn_stream import parse_line
 
 DEFAULT_NAME = "Housemate"
@@ -29,7 +30,19 @@ class HousemateConfigFlow(ConfigFlow, domain=DOMAIN):
         config = discovery_info.config
         host = str(config.get(CONF_HOST) or DEFAULT_HOST)
         port = int(config.get(CONF_PORT) or DEFAULT_PORT)
+        name = str(config.get(CONF_NAME) or "").strip()
         await self.async_set_unique_id(discovery_info.slug)
+        known = self.hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, discovery_info.slug)
+        if known is not None and known.source != SOURCE_IGNORE:
+            # The app is announced again at each start: it follows a new port, and a renamed assistant.
+            renamed = bool(name) and name != known.title
+            data = {**known.data, CONF_HOST: host, CONF_PORT: port}
+            if renamed or data != dict(known.data):
+                self.hass.config_entries.async_update_entry(known, data=data, title=name if renamed else known.title)
+                self.hass.config_entries.async_schedule_reload(known.entry_id)
+            if renamed:
+                _reload_own_wyoming(self.hass, config.get(CONF_WYOMING_PORT))
+            return self.async_abort(reason="already_configured")
         self._abort_if_unique_id_configured(updates={CONF_HOST: host, CONF_PORT: port})
         # One added by hand at the same address is this app: it is kept, and follows the app from now on.
         for entry in self._async_current_entries(include_ignore=False):
@@ -72,6 +85,18 @@ class HousemateConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
+
+
+def _reload_own_wyoming(hass: HomeAssistant, port: object) -> None:
+    """The app's Hearing and Voice (Wyoming, on this box at its port) read their names only when loaded:
+    reloaded, they take the new assistant name too."""
+    try:
+        wanted = int(port)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        return
+    for entry in hass.config_entries.async_entries("wyoming"):
+        if int(entry.data.get("port") or 0) == wanted and str(entry.data.get("host") or "") in ("127.0.0.1", "localhost"):
+            hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 async def _async_reachable(flow: ConfigFlow, host: str, port: int) -> bool:

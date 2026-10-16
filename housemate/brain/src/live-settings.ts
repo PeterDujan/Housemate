@@ -41,8 +41,8 @@ export const LIVE_SETTINGS = Object.freeze({
   },
   claudeChatEffort: {
     group: "talking", option: "claude_chat_effort", kind: "enum", values: ["low", "default", "medium", "high"],
-    label: "How hard chat thinks",
-    help: "Quick replies faster; careful takes longer and thinks more.",
+    label: "Thinking time",
+    help: "Quick answers sooner; Careful takes longer over harder questions.",
     requires: ["modelEnabled"], backend: "claude",
   },
   chatWebSearchEnabled: {

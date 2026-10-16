@@ -4,6 +4,8 @@ DOMAIN = "housemate"
 CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_NAME = "name"
+# The app's Wyoming port (its Hearing and Voice), in its discovery, so a rename reloads them.
+CONF_WYOMING_PORT = "wyoming_port"
 # The Housemate app runs on the HA host (host network) and announces itself with these.
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 10311
