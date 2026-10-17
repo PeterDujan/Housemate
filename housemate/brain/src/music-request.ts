@@ -91,7 +91,7 @@ const PLAY_ALIKES = /^(?:place|plays|played|plate|plane|pray|lay|clay|blay|plagu
 const NAMES_MUSIC = /\b(?:song|songs|theme|track|tune|album|music|playlist|sounds)\b/;
 /** Sound-alikes STT gave over music, tried only when the words heard parse as nothing. */
 const SPEAKER_ALIKES: readonly (readonly [RegExp, string])[] = [
-  [/\b(?:solving|soft|son|sung)$/, "song"],
+  [/\b(?:solving|soft|son|sung|phone)$/, "song"],
   [/\bwider$/, "quieter"],
   // Heard over loud music: "Floss the song.", "slot", "spot music."
   [/^(?:floss|flaws|paws|pores|pours|porz|pulse)\b/, "pause"],
@@ -218,7 +218,7 @@ function parseTransport(n: string, context: MusicParseContext): MusicRequest | n
   }
   // Stop: explicit music objects only, so "turn it off" stays with the devices.
   if (/^stop(?: it| this| that)?$|^that s enough$/.test(n)) return music({ kind: "stop" }, true);
-  if (new RegExp(`^(?:stop|kill|end|cut)(?: playing)? ${DET}${OBJ}$|^stop playing$|^(?:turn|switch|shut) off ${DET}${OBJ}$|^(?:turn|switch|shut) ${DET}${OBJ} off$|^(?:music|songs?) off$|^no more music$|^that s enough music$`).test(n)) {
+  if (new RegExp(`^(?:stop|kill|end|cut|cancel)(?: playing)? ${DET}${OBJ}$|^stop playing$|^(?:turn|switch|shut) off ${DET}${OBJ}$|^(?:turn|switch|shut) ${DET}${OBJ} off$|^(?:music|songs?) off$|^no more music$|^that s enough music$`).test(n)) {
     return music({ kind: "stop" });
   }
   // Resume.

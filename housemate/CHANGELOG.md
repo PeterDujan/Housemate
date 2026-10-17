@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.4
+
+- Music paused while you talk counts as music on for speakers that show the pause as idle, so
+  misheard commands over a song no longer reach the chat model.
+- "Cancel playing the song" stops the music; "pause the phone" heard over a song pauses it.
+
 ## 1.0.0-beta.3
 
 - Checks on the Overview: a red and green list of what works and what still needs doing (the

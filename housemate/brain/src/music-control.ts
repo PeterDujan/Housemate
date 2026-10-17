@@ -91,7 +91,8 @@ export function speakerPlayerActive(request: VoiceBrainRequest, routes: BasicBra
 
 /**
  * True while music is on at the speaker the turn came from: playing, or paused by
- * The voice host only for this request. No model calls then: over
+ * The voice host only for this request (a Sendspin or ESPHome player shows that
+ * pause as idle with the track loaded, see `hasMusic`). No model calls then: over
  * music, what reaches chat is misheard commands. HA's mute flag is not trusted:
  * it stayed "muted" while a speaker played aloud.
  */
@@ -99,7 +100,7 @@ export function speakerMusicAudible(request: VoiceBrainRequest, routes: BasicBra
   const player = speakerMusicPlayer(request, routes);
   const state = player ? routes.stateCache?.get(player.entityId) ?? null : null;
   return state?.state === "playing"
-    || (state?.state === "paused" && request.endpoint?.musicPausedByTurn === true);
+    || (state != null && hasMusic(state) && request.endpoint?.musicPausedByTurn === true);
 }
 
 function checkPlayer(request: VoiceBrainRequest, routes: BasicBrainRouteServices): PlayerCheck {
